@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Microsoft.Win32;
+using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Diagnostics;
@@ -21,6 +22,12 @@ namespace WireSockUI.Forms
      */
     public partial class FrmMain : Form
     {
+        public RegistryKey GetRegistryKey()
+        {
+            RegistryKey key = Registry.LocalMachine.OpenSubKey(Global.RegistryKey);
+            return key;
+        }
+
         public enum ConnectionState
         {
             Connecting,
@@ -45,9 +52,23 @@ namespace WireSockUI.Forms
         {
             InitializeComponent();
 
+            
+
+            /* 
+            MessageBox.Show("Limit Non Admins: " + Global.LimitNonAdmins.ToString() +"\n" +
+                "Auto Connect: " + Global.AutoConnect.ToString() + "\n" +
+                "Auto Run: " + Global.AutoRun.ToString() + "\n" +
+                "Auto Minimize: " + Global.AutoMinimize.ToString() + "\n" +
+                "Auto Update: " + Global.AutoUpdate.ToString() + "\n" +
+                "Log Level: " + Global.LogLevel.ToString() + "\n" +
+                "Use Adapter: " + Global.UseAdapter.ToString() + "\n" );
+            */
+            
+
+
             // Don't try to elevate when running under debugger
             if (!Debugger.IsAttached)
-                if (!IsCurrentProcessElevated() && !Settings.Default.DisableAutoAdmin)
+                if (!Global.IsCurrentProcessElevated() && !Settings.Default.DisableAutoAdmin)
                     try
                     {
                         var startInfo = new ProcessStartInfo
@@ -71,6 +92,17 @@ namespace WireSockUI.Forms
                 MessageBox.Show(Resources.AlreadyRunningMessage, Resources.AlreadyRunningTitle, MessageBoxButtons.OK,
                     MessageBoxIcon.Information);
                 Environment.Exit(1);
+            }
+
+            if (!Global.IsCurrentProcessElevated() && Global.LimitNonAdmins == 1)
+            {
+                mniDeleteTunnel.Enabled = false;
+                btnEdit.Enabled = false;
+            }
+            else
+            {
+                mniDeleteTunnel.Enabled = true;
+                btnEdit.Enabled = true;
             }
 
             _tunnelConnectionWorker = InitializeTunnelConnectionWorker();
@@ -109,14 +141,17 @@ namespace WireSockUI.Forms
             _wiresock.LogLevel = _wiresock.LogLevelSetting;
         }
 
-        private static bool IsCurrentProcessElevated()
-        {
-            using (var identity = WindowsIdentity.GetCurrent())
-            {
-                var principal = new WindowsPrincipal(identity);
-                return principal.IsInRole(WindowsBuiltInRole.Administrator);
-            }
-        }
+        //COMPLETE: Moving IsCurrentProcessElevated() to Global
+        //private static bool IsCurrentProcessElevated()
+        //{
+        //    using (var identity = WindowsIdentity.GetCurrent())
+        //    {
+        //        var principal = new WindowsPrincipal(identity);
+        //        return principal.IsInRole(WindowsBuiltInRole.Administrator);
+        //    }
+        //}
+
+
 
         /// <summary>
         ///     Determines if another instance of the current application is already running.
@@ -589,7 +624,7 @@ namespace WireSockUI.Forms
                 UpdateState(ConnectionState.Disconnected, false);
             }
 
-            if (IsCurrentProcessElevated())
+            if (Global.IsCurrentProcessElevated())
                 // Set the tunnel mode based on the application settings.
                 _wiresock.TunnelMode = Settings.Default.UseAdapter
                     ? WireSockManager.Mode.VirtualAdapter
@@ -600,9 +635,15 @@ namespace WireSockUI.Forms
             // Get the selected profile.
             var profile = lstProfiles.SelectedItems[0].Text;
 
+            // Disable autoconnecting on profile click
             // Connect to the selected profile and update the state to connecting if successful.
-            if (_wiresock.Connect(profile))
-                UpdateState(ConnectionState.Connecting);
+            //if (_wiresock.Connect(profile))
+            //    UpdateState(ConnectionState.Connecting);
+
+            // Check if the sender is a Button, and if its text is equal to ButtonInactive, then connect if true
+            if (sender is Button)
+                if (_wiresock.Connect(profile))
+                    UpdateState(ConnectionState.Connecting);
         }
 
         private void OnWireSockLogMessage(WireSockManager.LogMessage logMessage)
@@ -610,6 +651,8 @@ namespace WireSockUI.Forms
             lstLog.Items.Add(new ListViewItem(new[]
                 { logMessage.Timestamp.ToString(Resources.LogTimestampFormat), logMessage.Message }));
         }
+
+        
 
         #region Layout
 
@@ -727,8 +770,13 @@ namespace WireSockUI.Forms
                 }
             }
 
-            mniDeleteTunnel.Enabled = e.IsSelected;
-            btnEdit.Enabled = e.IsSelected;
+            // Enable Delete and Edit only if admin 
+            if (Global.IsCurrentProcessElevated()) 
+            {
+                mniDeleteTunnel.Enabled = e.IsSelected;
+                btnEdit.Enabled = e.IsSelected;
+            }
+            
             return;
 
             void AddRow(TableLayoutPanel container, string name, string key, string value, bool isOptional = false,
@@ -893,5 +941,12 @@ namespace WireSockUI.Forms
         }
 
         #endregion
+
+        private void FrmMain_Load(object sender, EventArgs e)
+        {
+            
+
+
+        }
     }
 }

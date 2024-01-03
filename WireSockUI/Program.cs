@@ -32,6 +32,62 @@ namespace WireSockUI
 
             CheckVersion();
 
+            // Check registry overrides keys and create if null
+            // HKLM\SOFTWARE\WireSockUI\WireSockUI
+            RegistryKey key = Registry.LocalMachine.OpenSubKey(Global.RegistryKey);
+            if (key == null)
+            {
+                if (Global.IsCurrentProcessElevated())
+                {
+                    try
+                    {
+                        // Create the key
+                        RegistryKey rkey = Registry.LocalMachine.CreateSubKey(Global.RegistryKey);
+
+                        // Create default settings.
+                        // 0x0 = OFF, 0x1 = ON, 0x2 = IGNORED
+                        // The below registry values can be used to override the user settings.
+                        // This will allow greater control by administrators in an enterprise setting.
+                        // By design, these are not editable in the application itself
+                        rkey.SetValue("LimitNonAdmins", 0x1, RegistryValueKind.DWord);  // Will disable the "edit", "delete", and open profile location buttons when run as a non-admin
+                        rkey.SetValue("AutoConnect", 0x2, RegistryValueKind.DWord);     
+                        rkey.SetValue("AutoRun", 0x2, RegistryValueKind.DWord);         
+                        rkey.SetValue("AutoMinimize", 0x2, RegistryValueKind.DWord);    
+                        rkey.SetValue("AutoUpdate", 0x0, RegistryValueKind.DWord);      // AutoUpdate Disabled by default.
+                        rkey.SetValue("LogLevel", 0x2, RegistryValueKind.DWord);        
+                        rkey.SetValue("UseAdapter", 0x2, RegistryValueKind.DWord);      
+                        rkey.Close();
+
+                    }
+                    catch
+                    {
+                        // Could not create the key or values
+                        MessageBox.Show("Error setting up the environment!");
+                        Environment.Exit(1);
+                    }
+                }
+                else
+                {
+                    key.Close();
+                    MessageBox.Show("The application needs to be run as an Administrator at least once to finish setting up the environment. \nPlease relaunch the application as an Administrator. \nThe application will now close.");
+                    Environment.Exit(1);
+                }
+                
+            }
+
+            // Get registry overrides and load into Globals...
+            // TODO: Add Try Catch here on loading registry values?
+            key = Registry.LocalMachine.OpenSubKey(Global.RegistryKey);
+            Global.LimitNonAdmins = (int)key.GetValue("LimitNonAdmins");
+            Global.AutoConnect = (int)key.GetValue("AutoConnect");
+            Global.AutoRun = (int)key.GetValue("AutoRun");
+            Global.AutoMinimize = (int)key.GetValue("AutoMinimize");
+            Global.AutoUpdate = (int)key.GetValue("AutoUpdate");
+            Global.LogLevel = (int)key.GetValue("LogLevel");
+            Global.UseAdapter = (int)key.GetValue("UseAdapter");
+            key.Close();
+
+
             Application.Run(new FrmMain());
         }
 

@@ -109,7 +109,7 @@ namespace WireSockUI.Forms
             this.cmiExit});
             this.mnuContext.Name = "contextMenuStrip1";
             this.resControls.SetResourceKey(this.mnuContext, null);
-            this.mnuContext.Size = new System.Drawing.Size(211, 126);
+            this.mnuContext.Size = new System.Drawing.Size(211, 148);
             // 
             // cmiStatus
             // 
@@ -499,7 +499,7 @@ namespace WireSockUI.Forms
             // 
             this.resMenu.ResourceClassName = "WireSockUI.Properties.Resources";
             // 
-            // frmMain
+            // FrmMain
             // 
             this.AutoScaleDimensions = new System.Drawing.SizeF(6F, 13F);
             this.AutoScaleMode = System.Windows.Forms.AutoScaleMode.Font;
@@ -513,6 +513,7 @@ namespace WireSockUI.Forms
             this.StartPosition = System.Windows.Forms.FormStartPosition.CenterScreen;
             this.Text = "WireSock UI";
             this.FormClosing += new System.Windows.Forms.FormClosingEventHandler(this.OnFormClosing);
+            this.Load += new System.EventHandler(this.FrmMain_Load);
             this.Resize += new System.EventHandler(this.OnFormMinimize);
             this.mnuContext.ResumeLayout(false);
             this.tabControl.ResumeLayout(false);
